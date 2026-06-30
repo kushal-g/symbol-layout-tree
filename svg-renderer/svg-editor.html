@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SVG Editor</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
+
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: #1e1e2e;
+  color: #cdd6f4;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+/* Header */
+.header {
+  height: 40px;
+  background: #181825;
+  border-bottom: 1px solid #313244;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.header-title { font-weight: 600; font-size: 13px; color: #cba6f7; letter-spacing: 0.3px; }
+.header-error { font-size: 11px; color: #f38ba8; margin-left: auto; }
+
+/* Workspace */
+.workspace {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* Panels */
+.panel { display: flex; flex-direction: column; overflow: hidden; }
+#left-panel  { flex: 1; min-width: 200px; }
+#right-panel { flex: 1; min-width: 200px; }
+
+.panel-bar {
+  height: 36px;
+  background: #181825;
+  border-bottom: 1px solid #313244;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.panel-label { font-size: 11px; color: #585b70; text-transform: uppercase; letter-spacing: 0.8px; }
+
+/* Toggle switch */
+.toggle { display: flex; background: #313244; border-radius: 6px; padding: 2px; margin-left: auto; gap: 1px; }
+.toggle-btn {
+  font-size: 11px; padding: 3px 10px;
+  border: none; background: transparent;
+  color: #6c7086; cursor: pointer;
+  border-radius: 4px; font-family: inherit;
+  transition: background 0.12s, color 0.12s;
+}
+.toggle-btn.active { background: #cba6f7; color: #1e1e2e; font-weight: 600; }
+.toggle-btn:hover:not(.active) { color: #cdd6f4; }
+
+/* Code editor */
+#code-editor {
+  flex: 1; width: 100%;
+  border: none; outline: none; resize: none;
+  background: #1e1e2e; color: #cdd6f4;
+  font-family: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', 'Consolas', monospace;
+  font-size: 13px; line-height: 1.7;
+  padding: 14px 16px; tab-size: 2;
+}
+
+/* Tags tree */
+#tags-tree {
+  flex: 1; overflow: auto;
+  padding: 10px 16px;
+  font-family: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', 'Consolas', monospace;
+  font-size: 13px; line-height: 1.9;
+}
+
+.node-row {
+  display: flex; align-items: baseline;
+  border-radius: 4px; cursor: default;
+  padding: 0 2px;
+}
+.node-row:hover { background: #28293d; }
+
+.expand-btn {
+  color: #45475a; font-size: 10px;
+  width: 16px; text-align: center;
+  cursor: pointer; user-select: none;
+  flex-shrink: 0; align-self: center;
+  border-radius: 3px;
+}
+.expand-btn:hover { color: #cba6f7; background: #313244; }
+.expand-spacer { width: 16px; flex-shrink: 0; }
+
+.tok-bracket { color: #89b4fa; }
+.tok-tag     { color: #89b4fa; font-weight: 500; }
+.tok-aname   { color: #cba6f7; }
+.tok-eq      { color: #6c7086; }
+.tok-aval    { color: #a6e3a1; }
+.tok-text    { color: #fab387; font-style: italic; }
+
+.attr-bubble {
+  display: inline-flex; align-items: center;
+  background: #313244; border-radius: 4px;
+  padding: 0 6px; margin-left: 5px;
+  font-size: 11px; color: #6c7086;
+  cursor: pointer; user-select: none;
+  gap: 3px;
+}
+.attr-bubble:hover { background: #45475a; color: #cba6f7; }
+
+.attrs-block {
+  padding-left: 16px;
+  padding-bottom: 2px;
+  display: flex; flex-wrap: wrap;
+  gap: 2px 12px;
+}
+.attr-pair { display: inline-flex; align-items: baseline; gap: 1px; }
+
+/* Zoom controls */
+.zoom-btn {
+  width: 22px; height: 22px;
+  border: 1px solid #45475a; border-radius: 4px;
+  background: transparent; color: #cdd6f4;
+  cursor: pointer; font-size: 15px; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0; font-family: inherit;
+}
+.zoom-btn:hover { background: #313244; border-color: #6c7086; }
+#zoom-display {
+  font-size: 11px; color: #6c7086;
+  min-width: 38px; text-align: center;
+  font-family: monospace;
+}
+.zoom-row { display: flex; align-items: center; gap: 4px; margin-left: auto; }
+
+/* Custom attrs toggle */
+.attr-toggle {
+  font-size: 11px; padding: 2px 8px;
+  border: 1px solid #45475a; border-radius: 4px;
+  background: transparent; color: #6c7086;
+  cursor: pointer; font-family: inherit;
+  white-space: nowrap;
+}
+.attr-toggle.on { border-color: #a6e3a1; color: #a6e3a1; background: rgba(166,227,161,0.08); }
+.attr-toggle:hover:not(.on) { color: #cdd6f4; border-color: #6c7086; }
+
+/* Divider */
+.divider {
+  width: 3px; background: #313244;
+  cursor: col-resize; flex-shrink: 0;
+  transition: background 0.1s;
+}
+.divider:hover, .divider.active { background: #cba6f7; }
+
+/* Preview */
+#svg-preview {
+  flex: 1; overflow: auto;
+}
+.preview-error {
+  color: #dc143c; font-size: 12px;
+  font-family: monospace; padding: 12px;
+  white-space: pre-wrap; max-width: 100%;
+}
+
+/* Hover highlight overlay — fixed so it never touches layout */
+#svg-highlight {
+  position: fixed;
+  pointer-events: none;
+  z-index: 9999;
+  display: none;
+  outline: 2px solid rgba(203, 166, 247, 0.85);
+  background: rgba(203, 166, 247, 0.10);
+  box-sizing: border-box;
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <span class="header-title">SVG Editor</span>
+  <span class="header-error" id="header-error"></span>
+</div>
+
+<div class="workspace">
+
+  <!-- Left: editor panel -->
+  <div class="panel" id="left-panel">
+    <div class="panel-bar">
+      <span class="panel-label">Editor</span>
+      <button class="attr-toggle" id="btn-custom-attrs" onclick="toggleCustomAttrs()" title="Show/hide data-* and aria-* attributes">custom attrs</button>
+      <div class="toggle">
+        <button class="toggle-btn active" id="btn-tags" onclick="switchView('tags')">Tags</button>
+        <button class="toggle-btn"        id="btn-code" onclick="switchView('code')">Code</button>
+      </div>
+    </div>
+    <div id="tags-tree"></div>
+    <textarea id="code-editor" spellcheck="false" style="display:none"></textarea>
+  </div>
+
+  <div class="divider" id="divider"></div>
+
+  <!-- Right: preview panel -->
+  <div class="panel" id="right-panel">
+    <div class="panel-bar">
+      <span class="panel-label">Preview</span>
+      <div class="zoom-row">
+        <button class="zoom-btn" onclick="zoomBy(-0.1)" title="Zoom out (Ctrl+Scroll)">−</button>
+        <span id="zoom-display">100%</span>
+        <button class="zoom-btn" onclick="zoomBy(+0.1)" title="Zoom in (Ctrl+Scroll)">+</button>
+        <button class="zoom-btn" onclick="zoomReset()" title="Reset zoom" style="width:auto;padding:0 6px;font-size:11px">1:1</button>
+      </div>
+    </div>
+    <div id="svg-preview"></div>
+  </div>
+
+</div>
+
+<!-- Highlight overlay: sits outside all panels, never in the layout flow -->
+<div id="svg-highlight"></div>
+
+<script>
+/* ── Default SVG ─────────────────────────────────────────── */
+const DEFAULT_SVG =
+`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 200" width="240" height="200">
+  <defs>
+    <linearGradient id="grad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#89b4fa"/>
+      <stop offset="100%" stop-color="#cba6f7"/>
+    </linearGradient>
+  </defs>
+  <rect width="240" height="200" fill="url(#grad)" rx="16"/>
+  <circle cx="120" cy="82" r="40" fill="white" opacity="0.9"/>
+  <path d="M104 82 l10-16 l10 16 l10-16 l10 16" stroke="#cba6f7" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <text x="120" y="158" text-anchor="middle" font-family="sans-serif" font-size="20" font-weight="bold" fill="white" opacity="0.95">SVG Editor</text>
+</svg>`;
+
+/* ── State ───────────────────────────────────────────────── */
+let svgCode         = DEFAULT_SVG;
+let view            = 'tags';
+let expanded        = new Set();   // node keys whose attrs are shown
+let showCustomAttrs = false;       // show data-* / aria-* attributes
+let zoom            = 1;           // preview zoom level
+const keyPaths      = new Map();   // nodeKey → index path from SVG root
+
+const codeEl    = document.getElementById('code-editor');
+const treeEl    = document.getElementById('tags-tree');
+const previewEl = document.getElementById('svg-preview');
+const errorEl   = document.getElementById('header-error');
+
+codeEl.value = svgCode;
+renderAll();
+
+/* ── View switching ─────────────────────────────────────── */
+function switchView(v) {
+  if (v === view) return;
+  if (view === 'code') svgCode = codeEl.value;
+  view = v;
+  document.getElementById('btn-tags').classList.toggle('active', v === 'tags');
+  document.getElementById('btn-code').classList.toggle('active', v === 'code');
+
+  if (v === 'tags') {
+    codeEl.style.display = 'none';
+    treeEl.style.display  = 'block';
+    renderTagsTree();
+  } else {
+    treeEl.style.display  = 'none';
+    codeEl.style.display  = 'flex';
+    codeEl.value          = svgCode;
+    codeEl.focus();
+  }
+}
+
+/* ── Code editor events ─────────────────────────────────── */
+codeEl.addEventListener('input', () => {
+  svgCode = codeEl.value;
+  updatePreview();
+});
+
+codeEl.addEventListener('keydown', e => {
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    const s = codeEl.selectionStart, end = codeEl.selectionEnd;
+    codeEl.value = codeEl.value.slice(0, s) + '  ' + codeEl.value.slice(end);
+    codeEl.selectionStart = codeEl.selectionEnd = s + 2;
+    svgCode = codeEl.value;
+    updatePreview();
+  }
+});
+
+/* ── Render helpers ─────────────────────────────────────── */
+function renderAll() { updatePreview(); renderTagsTree(); }
+
+function parseSVG() {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(svgCode.trim() || '<svg/>', 'image/svg+xml');
+  const err = doc.querySelector('parseerror, parsererror');
+  if (err) return { error: err.textContent.trim() };
+  return { root: doc.documentElement };
+}
+
+/* ── Preview ────────────────────────────────────────────── */
+function updatePreview() {
+  const { root, error } = parseSVG();
+  if (error) {
+    errorEl.textContent = 'Invalid SVG';
+    previewEl.innerHTML = `<div class="preview-error">${escHtml(error)}</div>`;
+    return;
+  }
+  errorEl.textContent = '';
+  previewEl.innerHTML = '';
+  const wrap = document.createElement('div');
+  wrap.id = 'zoom-wrap';
+  wrap.style.display = 'inline-block';
+  wrap.style.transformOrigin = '0 0';
+  wrap.style.transform = `scale(${zoom})`;
+  wrap.appendChild(root.cloneNode(true));
+  previewEl.appendChild(wrap);
+}
+
+/* ── Zoom ───────────────────────────────────────────────── */
+function zoomBy(delta) {
+  zoom = Math.max(0.05, Math.min(20, parseFloat((zoom + delta).toFixed(2))));
+  applyZoom();
+}
+function zoomReset() { zoom = 1; applyZoom(); }
+function applyZoom() {
+  const wrap = document.getElementById('zoom-wrap');
+  if (wrap) wrap.style.transform = `scale(${zoom})`;
+  document.getElementById('zoom-display').textContent = Math.round(zoom * 100) + '%';
+}
+
+previewEl.addEventListener('wheel', e => {
+  if (!e.ctrlKey && !e.metaKey) return;
+  e.preventDefault();
+  zoomBy(e.deltaY < 0 ? 0.1 : -0.1);
+}, { passive: false });
+
+/* ── Custom attrs toggle ────────────────────────────────── */
+function isCustomAttr(name) {
+  return name.startsWith('data-') || name.startsWith('aria-');
+}
+
+function toggleCustomAttrs() {
+  showCustomAttrs = !showCustomAttrs;
+  document.getElementById('btn-custom-attrs').classList.toggle('on', showCustomAttrs);
+  renderTagsTree();
+}
+
+/* ── Hover highlight ────────────────────────────────────── */
+const hlEl = document.getElementById('svg-highlight');
+
+function findRenderedElement(indexPath) {
+  const svgEl = previewEl.querySelector('svg');
+  if (!svgEl) return null;
+  let el = svgEl;
+  for (const idx of indexPath) {
+    if (!el.children || idx >= el.children.length) return null;
+    el = el.children[idx];
+  }
+  return el;
+}
+
+function showHighlight(key) {
+  const path = keyPaths.get(key);
+  if (path === undefined) { hideHighlight(); return; }
+  const target = findRenderedElement(path);
+  if (!target) { hideHighlight(); return; }
+  const r = target.getBoundingClientRect();
+  if (r.width === 0 && r.height === 0) { hideHighlight(); return; }
+  hlEl.style.left   = r.left   + 'px';
+  hlEl.style.top    = r.top    + 'px';
+  hlEl.style.width  = r.width  + 'px';
+  hlEl.style.height = r.height + 'px';
+  hlEl.style.display = 'block';
+}
+
+function hideHighlight() {
+  hlEl.style.display = 'none';
+}
+
+treeEl.addEventListener('mouseover', e => {
+  const row = e.target.closest('[data-node-key]');
+  if (!row) { hideHighlight(); return; }
+  showHighlight(row.dataset.nodeKey);
+});
+treeEl.addEventListener('mouseleave', hideHighlight);
+
+/* ── Tags tree ──────────────────────────────────────────── */
+function renderTagsTree() {
+  const { root, error } = parseSVG();
+  if (error) {
+    treeEl.innerHTML = `<span style="color:#f38ba8;font-size:12px">Invalid SVG — switch to Code to fix</span>`;
+    return;
+  }
+  keyPaths.clear();
+  treeEl.innerHTML = '';
+  buildNode(root, treeEl, 0, '', []);
+}
+
+function buildNode(el, parent, depth, keyPrefix, indexPath) {
+  if (el.nodeType !== 1) return;
+
+  const key         = keyPrefix + '/' + el.tagName + '[' + childIndex(el) + ']';
+  keyPaths.set(key, indexPath);
+  const isOpen      = expanded.has(key);
+  const allAttrs    = Array.from(el.attributes);
+  const attrs       = showCustomAttrs ? allAttrs : allAttrs.filter(a => !isCustomAttr(a.name));
+  const hasChildren = el.children.length > 0;
+  const hasText     = !hasChildren && el.textContent.trim();
+
+  const wrap = document.createElement('div');
+
+  /* Opening row */
+  const row = document.createElement('div');
+  row.className = 'node-row';
+  row.style.paddingLeft = depth * 18 + 'px';
+  row.dataset.nodeKey = key;
+
+  /* Expand button */
+  if (attrs.length) {
+    const btn = document.createElement('span');
+    btn.className = 'expand-btn';
+    btn.textContent = isOpen ? '▾' : '▸';
+    btn.title = isOpen ? 'Hide attributes' : 'Show attributes';
+    btn.onclick = e => { e.stopPropagation(); toggle(key); };
+    row.appendChild(btn);
+  } else {
+    const sp = document.createElement('span');
+    sp.className = 'expand-spacer';
+    row.appendChild(sp);
+  }
+
+  /* <tagname */
+  row.appendChild(tok('tok-bracket', '<'));
+  row.appendChild(tok('tok-tag', el.tagName));
+
+  /* Attribute indicator or count bubble (when collapsed) */
+  if (attrs.length && !isOpen) {
+    const bubble = document.createElement('span');
+    bubble.className = 'attr-bubble';
+    bubble.title = attrs.map(a => `${a.name}="${a.value}"`).join('\n');
+    bubble.innerHTML = `<span style="color:#45475a;font-size:9px">▸</span>${attrs.length} attr${attrs.length > 1 ? 's' : ''}`;
+    bubble.onclick = e => { e.stopPropagation(); toggle(key); };
+    row.appendChild(bubble);
+  }
+
+  /* Closing > or /> */
+  row.appendChild(tok('tok-bracket', hasChildren || hasText ? '>' : ' />'));
+
+  /* Inline text content */
+  if (hasText && !isOpen) {
+    row.appendChild(tok('tok-text', ' ' + el.textContent.trim()));
+    row.appendChild(tok('tok-bracket', ' </'));
+    row.appendChild(tok('tok-tag', el.tagName));
+    row.appendChild(tok('tok-bracket', '>'));
+  }
+
+  wrap.appendChild(row);
+
+  /* Expanded attrs block */
+  if (isOpen && attrs.length) {
+    const block = document.createElement('div');
+    block.className = 'attrs-block';
+    block.style.paddingLeft = (depth * 18 + 32) + 'px';
+    attrs.forEach(a => {
+      const pair = document.createElement('span');
+      pair.className = 'attr-pair';
+      pair.appendChild(tok('tok-aname', a.name));
+      pair.appendChild(tok('tok-eq', '='));
+      pair.appendChild(tok('tok-aval', '"' + escHtml(a.value) + '"'));
+      block.appendChild(pair);
+    });
+    wrap.appendChild(block);
+  }
+
+  /* Children */
+  let ci = 0;
+  for (const child of el.children) {
+    buildNode(child, wrap, depth + 1, key + ci, [...indexPath, ci]);
+    ci++;
+  }
+
+  /* Closing tag for parent elements */
+  if (hasChildren) {
+    const close = document.createElement('div');
+    close.className = 'node-row';
+    close.style.paddingLeft = (depth * 18 + 16) + 'px';
+    close.appendChild(tok('tok-bracket', '</'));
+    close.appendChild(tok('tok-tag', el.tagName));
+    close.appendChild(tok('tok-bracket', '>'));
+    wrap.appendChild(close);
+  }
+
+  parent.appendChild(wrap);
+}
+
+function toggle(key) {
+  if (expanded.has(key)) expanded.delete(key);
+  else expanded.add(key);
+  renderTagsTree();
+}
+
+function tok(cls, text) {
+  const s = document.createElement('span');
+  s.className = cls;
+  s.textContent = text;
+  return s;
+}
+
+function childIndex(el) {
+  let i = 0, sib = el.previousElementSibling;
+  while (sib) { i++; sib = sib.previousElementSibling; }
+  return i;
+}
+
+function escHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+/* ── Resizable divider ──────────────────────────────────── */
+const divider  = document.getElementById('divider');
+const leftPanel  = document.getElementById('left-panel');
+let dragging = false, startX = 0, startW = 0;
+
+divider.addEventListener('mousedown', e => {
+  dragging = true;
+  startX = e.clientX;
+  startW = leftPanel.getBoundingClientRect().width;
+  divider.classList.add('active');
+  document.body.style.cursor = 'col-resize';
+  document.body.style.userSelect = 'none';
+  e.preventDefault();
+});
+
+document.addEventListener('mousemove', e => {
+  if (!dragging) return;
+  const totalW = document.querySelector('.workspace').getBoundingClientRect().width;
+  const newW = Math.max(200, Math.min(totalW - 200 - 3, startW + e.clientX - startX));
+  leftPanel.style.flex  = 'none';
+  leftPanel.style.width = newW + 'px';
+});
+
+document.addEventListener('mouseup', () => {
+  if (!dragging) return;
+  dragging = false;
+  divider.classList.remove('active');
+  document.body.style.cursor = '';
+  document.body.style.userSelect = '';
+});
+</script>
+</body>
+</html>
