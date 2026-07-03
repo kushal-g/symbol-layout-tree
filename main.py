@@ -33,13 +33,9 @@ def narration_layer(id: int, text: str):
 """
 
 eqn = {
-  "latex": r"| E_i | = \binom{8}{i} . 5^i . 21^{8-i}",
+  "latex": r"\begin{pmatrix} 1 & 2 & 3 & 4 & 5 \\ a & b^{2} & \frac{c}{d} & e & f \\ x & y & z^{2} & w & v \\ \alpha & \beta & \gamma & \delta & \epsilon \end{pmatrix}",
   "narrations": [
-    { "term": r"| E_i |",       "narration": "Number of 8-letter strings with i vowels", "pos": "1" },
-    { "term": r"\binom{8}{i}",  "narration": "Choose i locations for the vowels",         "pos": "1" },
-        { "term": r"i",      "narration": "Exponent for choose the remaining letters",               "pos": "3" },
-
-    { "term": r"21^{8-i}",      "narration": "Choose the remaining letters",               "pos": "1" },
+    { "term": r"\frac{c}{d}", "narration": "Element (2,3)", "pos": "1" }
   ],
 }
 
@@ -65,27 +61,31 @@ page_content += "</div>"
 
 page_content += """
 <script>
-  console.log(document.getElementById("narrate-0").getBoundingClientRect())
-  let narrate_dom, eqn_dom;
+  function wrap(el, wrapper) {
+      el.parentNode.insertBefore(wrapper, el);
+      wrapper.appendChild(el);
+  }
 """
 
 for i, term in enumerate(eqn.get("narrations", [])):
   page_content += f"""
 
-     narrate_dom =   document.getElementById("narrate-{i}")
-     eqn_dom = document.getElementById("eqn-{i}")
+    const narrate_dom{i} =   document.getElementById("narrate-{i}")
+    const eqn_dom{i} = document.getElementById("eqn-{i}")
     
-    text_bounds = narrate_dom.getBoundingClientRect()
-    term_bounds = eqn_dom.getBoundingClientRect()
+    text_bounds = narrate_dom{i}.getBoundingClientRect()
+    term_bounds = eqn_dom{i}.getBoundingClientRect()
     
-    h_margin = (text_bounds.width - term_bounds.width) / 2
+    const mpadded{i} = document.createElementNS("http://www.w3.org/1998/Math/MathML", "mpadded")
+    mpadded{i}.setAttribute("width","10em")
+    mpadded{i}.setAttribute("lspace", "5em")
+    mpadded{i}.setAttribute("height","10ex")
+    mpadded{i}.setAttribute("depth","5ex")
 
-    eqn_dom.style.marginLeft = "max(" + h_margin + "px, 0.5em)" 
-    eqn_dom.style.marginRight = "max(" + h_margin + "px, 0.5em)" 
+    wrap(eqn_dom{i}, mpadded{i})
 
-    
-    narrate_dom.style.left = eqn_dom.getBoundingClientRect().left - Number(getComputedStyle(eqn_dom).marginLeft.replace("px",""))
-    narrate_dom.style.top = eqn_dom.getBoundingClientRect().top - Number(getComputedStyle(narrate_dom).height.replace("px","")) - 10
+    narrate_dom{i}.style.left = eqn_dom{i}.getBoundingClientRect().left - Number(getComputedStyle(eqn_dom{i}).marginLeft.replace("px",""))
+    narrate_dom{i}.style.top = document.querySelector("math").getBoundingClientRect().top - Number(getComputedStyle(narrate_dom{i}).height.replace("px","")) - 10
 """
 
 

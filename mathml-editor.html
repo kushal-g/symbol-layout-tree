@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MathML Editor</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.6rem 1.2rem;
+      background: #1a1d27;
+      border-bottom: 1px solid #2d3148;
+      flex-shrink: 0;
+      gap: 1rem;
+    }
+
+    header h1 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #a78bfa;
+      letter-spacing: 0.02em;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    button {
+      padding: 0.3rem 0.75rem;
+      border: 1px solid #3d4168;
+      border-radius: 5px;
+      background: #252840;
+      color: #cbd5e1;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    button:hover {
+      background: #323660;
+      border-color: #6366f1;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #22c55e;
+      flex-shrink: 0;
+    }
+
+    .status-dot.error { background: #ef4444; }
+
+    .main {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .pane {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-width: 120px;
+    }
+
+    #editor-pane { width: 50%; }
+    #preview-pane { flex: 1; }
+
+    .pane-header {
+      padding: 0.45rem 1rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: #64748b;
+      background: #151720;
+      border-bottom: 1px solid #1e2235;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .pane-header span { flex: 1; }
+
+    #editor {
+      flex: 1;
+      resize: none;
+      border: none;
+      outline: none;
+      background: #0d0f1a;
+      color: #c9d1e0;
+      font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace;
+      font-size: 0.85rem;
+      line-height: 1.7;
+      padding: 1rem 1.2rem;
+      tab-size: 2;
+      overflow-y: auto;
+      white-space: pre;
+      word-wrap: off;
+    }
+
+    #editor::placeholder { color: #3a4060; }
+
+    .divider {
+      width: 5px;
+      background: #1e2235;
+      cursor: col-resize;
+      flex-shrink: 0;
+      transition: background 0.15s;
+      position: relative;
+    }
+
+    .divider:hover, .divider.dragging {
+      background: #6366f1;
+    }
+
+    .divider::after {
+      content: '';
+      position: absolute;
+      inset: 0 -4px;
+    }
+
+    #preview-pane {
+      background: #12141f;
+    }
+
+    #preview-content {
+      flex: 1;
+      overflow: auto;
+      padding: 2rem;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+    }
+
+    #preview-inner {
+      max-width: 100%;
+      width: 100%;
+    }
+
+    #preview-inner math {
+      font-size: 1.6rem;
+    }
+
+    .error-box {
+      background: #1f0d0d;
+      border: 1px solid #7f1d1d;
+      border-radius: 6px;
+      padding: 0.75rem 1rem;
+      color: #fca5a5;
+      font-family: ui-monospace, monospace;
+      font-size: 0.8rem;
+      line-height: 1.6;
+      white-space: pre-wrap;
+    }
+
+    .empty-state {
+      color: #2d3460;
+      font-size: 0.85rem;
+      text-align: center;
+      padding-top: 3rem;
+      line-height: 2;
+    }
+
+    .char-count {
+      font-size: 0.7rem;
+      color: #3a4060;
+      margin-left: auto;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>MathML Editor</h1>
+  <div class="toolbar">
+    <button id="btn-format">Format XML</button>
+    <button id="btn-copy">Copy MathML</button>
+    <button id="btn-clear">Clear</button>
+  </div>
+  <div class="status-dot" id="status-dot" title="Valid MathML"></div>
+</header>
+
+<div class="main" id="main">
+  <div class="pane" id="editor-pane">
+    <div class="pane-header">
+      <span>Editor</span>
+      <span class="char-count" id="char-count">0 chars</span>
+    </div>
+    <textarea id="editor" spellcheck="false" placeholder="Type MathML here…"></textarea>
+  </div>
+
+  <div class="divider" id="divider"></div>
+
+  <div class="pane" id="preview-pane">
+    <div class="pane-header">
+      <span>Preview</span>
+    </div>
+    <div id="preview-content">
+      <div id="preview-inner"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const DEFAULT_MATHML = `<math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
+  <mrow>
+    <mfrac>
+      <mrow>
+        <mo>-</mo><mi>b</mi>
+        <mo>&#x000B1;</mo>
+        <msqrt>
+          <mrow>
+            <msup><mi>b</mi><mn>2</mn></msup>
+            <mo>-</mo>
+            <mn>4</mn><mi>a</mi><mi>c</mi>
+          </mrow>
+        </msqrt>
+      </mrow>
+      <mrow>
+        <mn>2</mn><mi>a</mi>
+      </mrow>
+    </mfrac>
+  </mrow>
+</math>`;
+
+const editor    = document.getElementById('editor');
+const preview   = document.getElementById('preview-inner');
+const statusDot = document.getElementById('status-dot');
+const charCount = document.getElementById('char-count');
+
+// ── Rendering ──────────────────────────────────────────────────────────────
+
+function render(src) {
+  const trimmed = src.trim();
+  charCount.textContent = trimmed.length + ' chars';
+
+  if (!trimmed) {
+    preview.innerHTML = '<div class="empty-state">Start typing MathML<br>to see a live preview.</div>';
+    setStatus('ok');
+    return;
+  }
+
+  try {
+    // Use the HTML parser so named entities like &int;, &dd;, &infin; are resolved.
+    const sandbox = document.createElement('div');
+    sandbox.innerHTML = trimmed;
+
+    let mathEl = sandbox.querySelector('math');
+    if (!mathEl) {
+      // Bare fragment — wrap it
+      mathEl = document.createElementNS('http://www.w3.org/1998/Math/MathML', 'math');
+      mathEl.setAttribute('display', 'block');
+      while (sandbox.firstChild) mathEl.appendChild(sandbox.firstChild);
+    }
+
+    // If the math contains <semantics>, browsers only render Presentation MathML.
+    // Extract the annotation-xml[encoding="MathML-Presentation"] child and render
+    // that directly so Content MathML + annotation patterns display correctly.
+    const semantics = mathEl.querySelector('semantics');
+    if (semantics) {
+      const annotation = semantics.querySelector('annotation-xml[encoding="MathML-Presentation"]');
+      if (annotation) {
+        const display = mathEl.getAttribute('display') || 'block';
+        mathEl = document.createElementNS('http://www.w3.org/1998/Math/MathML', 'math');
+        mathEl.setAttribute('display', display);
+        while (annotation.firstChild) mathEl.appendChild(annotation.firstChild);
+      }
+    }
+
+    preview.innerHTML = '';
+    preview.appendChild(mathEl);
+    setStatus('ok');
+  } catch (e) {
+    preview.innerHTML = `<div class="error-box">Parse error:\n${e.message}</div>`;
+    setStatus('error');
+  }
+}
+
+function setStatus(state) {
+  statusDot.className = 'status-dot' + (state === 'error' ? ' error' : '');
+  statusDot.title = state === 'error' ? 'Invalid MathML' : 'Valid MathML';
+}
+
+// ── Debounced live update ──────────────────────────────────────────────────
+
+let debounceTimer;
+editor.addEventListener('input', () => {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => render(editor.value), 200);
+});
+
+// ── Tab key inserts spaces ─────────────────────────────────────────────────
+
+editor.addEventListener('keydown', e => {
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    const start = editor.selectionStart;
+    const end   = editor.selectionEnd;
+    editor.value = editor.value.slice(0, start) + '  ' + editor.value.slice(end);
+    editor.selectionStart = editor.selectionEnd = start + 2;
+  }
+});
+
+// ── Toolbar ────────────────────────────────────────────────────────────────
+
+document.getElementById('btn-format').addEventListener('click', () => {
+  try {
+    const formatted = formatXML(editor.value.trim());
+    editor.value = formatted;
+    render(editor.value);
+  } catch {}
+});
+
+document.getElementById('btn-copy').addEventListener('click', async () => {
+  await navigator.clipboard.writeText(editor.value);
+  const btn = document.getElementById('btn-copy');
+  const orig = btn.textContent;
+  btn.textContent = 'Copied!';
+  setTimeout(() => btn.textContent = orig, 1200);
+});
+
+document.getElementById('btn-clear').addEventListener('click', () => {
+  editor.value = '';
+  render('');
+});
+
+function formatXML(src) {
+  const INDENT = '  ';
+  // Use the HTML parser so named entities (&int;, &dd;, &infin; …) are resolved.
+  const sandbox = document.createElement('div');
+  sandbox.innerHTML = src.trim();
+  const root = sandbox.firstElementChild;
+  if (!root) return src;
+
+  function serialize(node, depth) {
+    if (node.nodeType === 3) {
+      const t = node.textContent.trim();
+      return t ? INDENT.repeat(depth) + t : null;
+    }
+    if (node.nodeType !== 1) return null;
+
+    const tag = node.tagName;
+    const attrs = Array.from(node.attributes).map(a => `${a.name}="${a.value}"`).join(' ');
+    const open  = attrs ? `<${tag} ${attrs}>` : `<${tag}>`;
+    const close = `</${tag}>`;
+
+    const kids = Array.from(node.childNodes)
+      .map(c => serialize(c, depth + 1))
+      .filter(s => s !== null);
+
+    if (kids.length === 0) {
+      return INDENT.repeat(depth) + (attrs ? `<${tag} ${attrs}/>` : `<${tag}/>`);
+    }
+
+    // keep short single-text-node children inline: <mi>x</mi>
+    if (
+      node.childNodes.length === 1 &&
+      node.firstChild.nodeType === 3 &&
+      node.firstChild.textContent.trim().length <= 20
+    ) {
+      return INDENT.repeat(depth) + open + node.firstChild.textContent.trim() + close;
+    }
+
+    return [INDENT.repeat(depth) + open, ...kids, INDENT.repeat(depth) + close].join('\n');
+  }
+
+  return serialize(root, 0);
+}
+
+// ── Resizable divider ──────────────────────────────────────────────────────
+
+const divider    = document.getElementById('divider');
+const editorPane = document.getElementById('editor-pane');
+const main       = document.getElementById('main');
+
+let dragging = false;
+
+divider.addEventListener('mousedown', e => {
+  dragging = true;
+  divider.classList.add('dragging');
+  document.body.style.userSelect = 'none';
+  document.body.style.cursor = 'col-resize';
+  e.preventDefault();
+});
+
+document.addEventListener('mousemove', e => {
+  if (!dragging) return;
+  const mainRect = main.getBoundingClientRect();
+  const divWidth = divider.offsetWidth;
+  let newWidth = e.clientX - mainRect.left;
+  newWidth = Math.max(200, Math.min(mainRect.width - divWidth - 200, newWidth));
+  editorPane.style.width = newWidth + 'px';
+  editorPane.style.flex = 'none';
+});
+
+document.addEventListener('mouseup', () => {
+  if (!dragging) return;
+  dragging = false;
+  divider.classList.remove('dragging');
+  document.body.style.userSelect = '';
+  document.body.style.cursor = '';
+});
+
+// ── Init ───────────────────────────────────────────────────────────────────
+
+editor.value = DEFAULT_MATHML;
+render(editor.value);
+</script>
+</body>
+</html>

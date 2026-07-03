@@ -3,92 +3,33 @@
 
   <div style='margin-bottom: 50px'>
   <div id="narrate-0" style="max-width:4rem; font-size: 0.5em; border:1px solid black; text-align: center; position: absolute">
-   Number of 8-letter strings with i vowels
+   Element (2,3)
   </div>
 
-
-  <div id="narrate-1" style="max-width:4rem; font-size: 0.5em; border:1px solid black; text-align: center; position: absolute">
-   Choose i locations for the vowels
-  </div>
-
-
-  <div id="narrate-2" style="max-width:4rem; font-size: 0.5em; border:1px solid black; text-align: center; position: absolute">
-   Exponent for choose the remaining letters
-  </div>
-
-
-  <div id="narrate-3" style="max-width:4rem; font-size: 0.5em; border:1px solid black; text-align: center; position: absolute">
-   Choose the remaining letters
-  </div>
-
-<math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mrow id='eqn-0'><mo stretchy="false">&#x0007C;</mo><msub><mi>E</mi><mi>i</mi></msub><mo stretchy="false">&#x0007C;</mo></mrow><mo>&#x0003D;</mo><mrow id='eqn-1'><mo minsize="2.047em" maxsize="2.047em">&#x00028;</mo><mfrac linethickness="0"><mrow><mn>8</mn></mrow><mrow><mi>i</mi></mrow></mfrac><mo minsize="2.047em" maxsize="2.047em">&#x00029;</mo></mrow><mo>&#x0002E;</mo><msup><mn>5</mn><mrow id='eqn-2'><mi>i</mi></mrow></msup><mo>&#x0002E;</mo><mrow id='eqn-3'><msup><mn>21</mn><mrow><mn>8</mn><mo>&#x02212;</mo><mi>i</mi></mrow></msup></mrow></mrow></math></div>
+<math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mo>&#x00028;</mo><mtable><mtr><mtd><mn>1</mn></mtd><mtd><mn>2</mn></mtd><mtd><mn>3</mn></mtd><mtd><mn>4</mn></mtd><mtd><mn>5</mn></mtd></mtr><mtr><mtd><mi>a</mi></mtd><mtd><msup><mi>b</mi><mrow><mn>2</mn></mrow></msup></mtd><mtd><mrow id='eqn-0'><mfrac><mrow><mi>c</mi></mrow><mrow><mi>d</mi></mrow></mfrac></mrow></mtd><mtd><mi>e</mi></mtd><mtd><mi>f</mi></mtd></mtr><mtr><mtd><mi>x</mi></mtd><mtd><mi>y</mi></mtd><mtd><msup><mi>z</mi><mrow><mn>2</mn></mrow></msup></mtd><mtd><mi>w</mi></mtd><mtd><mi>v</mi></mtd></mtr><mtr><mtd><mi>&#x003B1;</mi></mtd><mtd><mi>&#x003B2;</mi></mtd><mtd><mi>&#x003B3;</mi></mtd><mtd><mi>&#x003B4;</mi></mtd><mtd><mi>&#x003F5;</mi></mtd></mtr></mtable><mo>&#x00029;</mo></mrow></math></div>
 <script>
-  console.log(document.getElementById("narrate-0").getBoundingClientRect())
-  let narrate_dom, eqn_dom;
+  function wrap(el, wrapper) {
+      el.parentNode.insertBefore(wrapper, el);
+      wrapper.appendChild(el);
+  }
 
 
-     narrate_dom =   document.getElementById("narrate-0")
-     eqn_dom = document.getElementById("eqn-0")
+    const narrate_dom0 =   document.getElementById("narrate-0")
+    const eqn_dom0 = document.getElementById("eqn-0")
     
-    text_bounds = narrate_dom.getBoundingClientRect()
-    term_bounds = eqn_dom.getBoundingClientRect()
+    text_bounds = narrate_dom0.getBoundingClientRect()
+    term_bounds = eqn_dom0.getBoundingClientRect()
     
-    h_margin = (text_bounds.width - term_bounds.width) / 2
+    const mpadded0 = document.createElementNS("http://www.w3.org/1998/Math/MathML", "mpadded")
+    mpadded0.setAttribute("width","10em")
+    mpadded0.setAttribute("lspace", "5em")
+    mpadded0.setAttribute("height","10ex")
+    mpadded0.setAttribute("depth","5ex")
 
-    eqn_dom.style.marginLeft = "max(" + h_margin + "px, 0.5em)" 
-    eqn_dom.style.marginRight = "max(" + h_margin + "px, 0.5em)" 
+    wrap(eqn_dom0, mpadded0)
 
-    
-    narrate_dom.style.left = eqn_dom.getBoundingClientRect().left - Number(getComputedStyle(eqn_dom).marginLeft.replace("px",""))
-    narrate_dom.style.top = eqn_dom.getBoundingClientRect().top - Number(getComputedStyle(narrate_dom).height.replace("px","")) - 10
-
-
-     narrate_dom =   document.getElementById("narrate-1")
-     eqn_dom = document.getElementById("eqn-1")
-    
-    text_bounds = narrate_dom.getBoundingClientRect()
-    term_bounds = eqn_dom.getBoundingClientRect()
-    
-    h_margin = (text_bounds.width - term_bounds.width) / 2
-
-    eqn_dom.style.marginLeft = "max(" + h_margin + "px, 0.5em)" 
-    eqn_dom.style.marginRight = "max(" + h_margin + "px, 0.5em)" 
-
-    
-    narrate_dom.style.left = eqn_dom.getBoundingClientRect().left - Number(getComputedStyle(eqn_dom).marginLeft.replace("px",""))
-    narrate_dom.style.top = eqn_dom.getBoundingClientRect().top - Number(getComputedStyle(narrate_dom).height.replace("px","")) - 10
-
-
-     narrate_dom =   document.getElementById("narrate-2")
-     eqn_dom = document.getElementById("eqn-2")
-    
-    text_bounds = narrate_dom.getBoundingClientRect()
-    term_bounds = eqn_dom.getBoundingClientRect()
-    
-    h_margin = (text_bounds.width - term_bounds.width) / 2
-
-    eqn_dom.style.marginLeft = "max(" + h_margin + "px, 0.5em)" 
-    eqn_dom.style.marginRight = "max(" + h_margin + "px, 0.5em)" 
-
-    
-    narrate_dom.style.left = eqn_dom.getBoundingClientRect().left - Number(getComputedStyle(eqn_dom).marginLeft.replace("px",""))
-    narrate_dom.style.top = eqn_dom.getBoundingClientRect().top - Number(getComputedStyle(narrate_dom).height.replace("px","")) - 10
-
-
-     narrate_dom =   document.getElementById("narrate-3")
-     eqn_dom = document.getElementById("eqn-3")
-    
-    text_bounds = narrate_dom.getBoundingClientRect()
-    term_bounds = eqn_dom.getBoundingClientRect()
-    
-    h_margin = (text_bounds.width - term_bounds.width) / 2
-
-    eqn_dom.style.marginLeft = "max(" + h_margin + "px, 0.5em)" 
-    eqn_dom.style.marginRight = "max(" + h_margin + "px, 0.5em)" 
-
-    
-    narrate_dom.style.left = eqn_dom.getBoundingClientRect().left - Number(getComputedStyle(eqn_dom).marginLeft.replace("px",""))
-    narrate_dom.style.top = eqn_dom.getBoundingClientRect().top - Number(getComputedStyle(narrate_dom).height.replace("px","")) - 10
+    narrate_dom0.style.left = eqn_dom0.getBoundingClientRect().left - Number(getComputedStyle(eqn_dom0).marginLeft.replace("px",""))
+    narrate_dom0.style.top = document.querySelector("math").getBoundingClientRect().top - Number(getComputedStyle(narrate_dom0).height.replace("px","")) - 10
 
 </script>
 </html>
