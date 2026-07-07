@@ -1,0 +1,17 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "services": {
+    "backend": {
+      "root": "backend/",
+      "entrypoint": "server:app"
+    },
+    "frontend": {
+      "root": "formula-render/formula-renderer/",
+      "outputDirectory": "dist"
+    }
+  },
+  "rewrites": [
+    { "source": "/render", "destination": { "service": "backend" } },
+    { "source": "/(.*)", "destination": { "service": "frontend" } }
+  ]
+}

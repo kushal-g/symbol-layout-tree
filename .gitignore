@@ -1,0 +1,11 @@
+# Python
+__pycache__/
+*.pyc
+venv/
+
+# Vite dependency-optimizer cache (formula-render/.vite/, outside the npm
+# project root, not covered by formula-render/formula-renderer/.gitignore)
+**/.vite/
+
+# Vercel CLI local state
+.vercel
